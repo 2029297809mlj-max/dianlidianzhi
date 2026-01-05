@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电力电子 V6 考场 - 峄城加油站专用版</title>
+    <!-- 核心引擎 -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: -apple-system, "Microsoft YaHei", sans-serif; background-color: #f8fafc; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        input:focus { outline: none; border-color: #2563eb; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // 图标组件
+        const IconCheck = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/></svg>;
+        const IconX = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>;
+        const IconTrash = () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>;
+
+        const App = () => {
+            const [tab, setTab] = useState('notes');
+            const [results, setResults] = useState({});
+            const [inputs, setInputs] = useState({});
+            const [showAns, setShowAns] = useState({});
+            const [wrong, setWrong] = useState([]);
+
+            // --- V6 题库数据 ---
+            const questions = useMemo(() => [
+                // 选择题 (15)
+                { id: 'm1', type: 'mcq', q: 'IGBT 的开关频率和容量特征介于哪两者之间？', a: 'MOSFET 和 GTR', o: ['SCR 和 GTO', 'MOSFET 和 GTR', 'GTR 和 SCR', 'GTO 和 MOSFET'], r: 'IGBT结合了MOSFET的高频特性和GTR的大电流特性。' },
+                { id: 'm2', type: 'mcq', q: '三相全控桥整流，阻感负载，α移相范围是？', a: '0° ~ 90°', o: ['0° ~ 180°', '0° ~ 120°', '0° ~ 150°', '0° ~ 90°'], r: '电流连续时，α最大为90度。' },
+                { id: 'm3', type: 'mcq', q: '单管正激变换器增加去磁绕组目的是？', a: '磁芯复位', o: ['增加电压', '磁芯复位', '减小纹波', '提高频率'], r: '防止磁芯饱和，实现磁通复位。' },
+                { id: 'm4', type: 'mcq', q: '三相桥式全控整流，电阻负载，电流断续点是？', a: '60°', o: ['30°', '60°', '90°', '120°'], r: 'α>60°时，电阻负载电压出现零段，电流断续。' },
+                { id: 'm5', type: 'mcq', q: '电压型逆变电路，反并联二极管作用？', a: '提供续流通道', o: ['防过压', '整流', '提供续流通道', '提频'], r: '为感性负载的无功功率提供回馈通道。' },
+                { id: 'm6', type: 'mcq', q: '三相半波整流，晶闸管最大反压是相电压有效值的？', a: '√6 倍', o: ['√2 倍', '√3 倍', '√6 倍', '2 倍'], r: '承受线电压峰值。' },
+                { id: 'm7', type: 'mcq', q: '属于反极性输出的斩波电路是？', a: 'Buck-Boost', o: ['Buck', 'Boost', 'Buck-Boost', 'Zeta'], r: '输出电压极性与输入相反。' },
+                { id: 'm8', type: 'mcq', q: '单相桥式PWM逆变，单极性调制电平数？', a: '3', o: ['2', '3', '4', '5'], r: '+Ud, 0, -Ud。' },
+                { id: 'm9', type: 'mcq', q: 'GTO的关断增益通常为？', a: '5左右', o: ['5左右', '50左右', '100以上', '1'], r: '很小，需要大电流关断。' },
+                { id: 'm10', type: 'mcq', q: '三相桥式全控整流自然换相点在？', a: '相电压交点', o: ['过零点', '相电压交点', '线电压交点', '峰值点'], r: '即α=0处。' },
+                { id: 'm11', type: 'mcq', q: '抑制开通di/dt通常串联？', a: '电感', o: ['电容', '电阻', '电感', '二极管'], r: '电感限制电流变化率。' },
+                { id: 'm12', type: 'mcq', q: 'SPWM改变调制波幅度调节什么？', a: '基波幅值', o: ['基波幅值', '频率', '载波比', '谐波'], r: '调制比决定输出电压大小。' },
+                { id: 'm13', type: 'mcq', q: '电压应力最高的隔离变换器是？', a: '推挽', o: ['全桥', '半桥', '推挽', '反激'], r: '承受2倍输入电压。' },
+                { id: 'm14', type: 'mcq', q: '有源逆变必要条件是α满足？', a: 'α > 90°', o: ['α < 90°', 'α = 90°', 'α > 90°', 'α = 0°'], r: '输出负电压。' },
+                { id: 'm15', type: 'mcq', q: '软开关ZCS指？', a: '零电流开关', o: ['零电压开关', '零电流开关', '零功率开关', '硬开关'], r: 'Zero Current Switching。' },
+
+                // 判断题 (10)
+                { id: 't1', type: 'tf', q: '晶闸管额定电流用有效值定义。', a: '错误', r: '是通态平均电流。' },
+                { id: 't2', type: 'tf', q: 'Buck电路输出电压低于输入。', a: '正确', r: '降压电路。' },
+                { id: 't3', type: 'tf', q: '电压型逆变直流侧并联大电感。', a: '错误', r: '应并联大电容。' },
+                { id: 't4', type: 'tf', q: '逆变角β=180°-α。', a: '正确', r: '互补关系。' },
+                { id: 't5', type: 'tf', q: 'MOSFET是电流驱动器件。', a: '错误', r: '电压驱动。' },
+                { id: 't6', type: 'tf', q: '三相全控桥α=90°时Ud为零。', a: '正确', r: 'cos90=0。' },
+                { id: 't7', type: 'tf', q: '反激变换器导通时次级导通。', a: '错误', r: '导通储能，关断输出。' },
+                { id: 't8', type: 'tf', q: 'SPWM异步调制载波比变化。', a: '正确', r: '载波定，基波变。' },
+                { id: 't9', type: 'tf', q: '漏感导致输出电压增大。', a: '错误', r: '换相压降使电压减小。' },
+                { id: 't10', type: 'tf', q: '软开关利用谐振原理。', a: '正确', r: '制造零压零流条件。' },
+
+                // 填空题 (10)
+                { id: 'f1', type: 'fill', q: '维持导通的最小电流叫___电流。', a: '维持', r: 'IH。' },
+                { id: 'f2', type: 'fill', q: '单相桥式全控，阻感，Ud=___。', a: '0.9U2cosα', r: '基础公式。' },
+                { id: 'f3', type: 'fill', q: '直流侧接大电感是___型逆变。', a: '电流', r: 'CSI。' },
+                { id: 'f4', type: 'fill', q: '正激电路需___绕组复位。', a: '去磁', r: '或复位绕组。' },
+                { id: 'f5', type: 'fill', q: '三相桥式脉动频率是电源___倍。', a: '6', r: '6脉波。' },
+                { id: 'f6', type: 'fill', q: '刚移除触发信号维持导通叫___电流。', a: '擎住', r: 'IL。' },
+                { id: 'f7', type: 'fill', q: '过流保护常用快速___。', a: '熔断器', r: '快熔。' },
+                { id: 'f8', type: 'fill', q: '交流调压通过改变___角调节。', a: '控制', r: '或触发角。' },
+                { id: 'f9', type: 'fill', q: '有源逆变失败因换相___不足。', a: '裕量', r: '裕量角。' },
+                { id: 'f10', type: 'fill', q: 'SPWM调制波通常是___波。', a: '正弦', r: 'Sine。' },
+
+                // 计算题 (5)
+                { id: 'c1', type: 'calc', q: '【中难】三相桥式全控，U2=100V，α=30°，阻感负载。求 Ud (取整)。', a: '203', r: '2.34*100*0.866 = 202.6' },
+                { id: 'c2', type: 'calc', q: '【中难】单相全桥逆变，Ud=200V。求基波有效值 Uo1 (取整)。', a: '180', r: '0.9*200 = 180' },
+                { id: 'c3', type: 'calc', q: '【高难】Boost电路，输入24V，输出60V。求占空比 D (小数)。', a: '0.6', r: '60=24/(1-D) => 1-D=0.4' },
+                { id: 'c4', type: 'calc', q: '【高难】三相桥整流，Id=100A。求管子有效值 It (一位小数)。', a: '57.7', r: '100/√3 = 57.7' },
+                { id: 'c5', type: 'calc', q: '【高难】三相桥，漏感1mH，Id=100A，50Hz。求换相压降 (取整)。', a: '30', r: '3/π * 314 * 0.001 * 100 = 30' }
+            ], []);
+
+            // --- 持久化逻辑 ---
+            useEffect(() => {
+                const w = localStorage.getItem('pe_v6_wrong');
+                const r = localStorage.getItem('pe_v6_res');
+                if (w) setWrong(JSON.parse(w));
+                if (r) setResults(JSON.parse(r));
+            }, []);
+
+            useEffect(() => {
+                localStorage.setItem('pe_v6_wrong', JSON.stringify(wrong));
+                localStorage.setItem('pe_v6_res', JSON.stringify(results));
+            }, [wrong, results]);
+
+            // --- 答题逻辑 ---
+            const check = (id, val, ans) => {
+                if (results[id]) return;
+                const isCorrect = val.toString().trim().toLowerCase().includes(ans.toString().toLowerCase()) || 
+                                  ans.toString().toLowerCase().includes(val.toString().trim().toLowerCase());
+                setResults(p => ({...p, [id]: isCorrect ? 'correct' : 'wrong'}));
+                setShowAns(p => ({...p, [id]: true}));
+                if (!isCorrect) setWrong(p => [...new Set([...p, id])]);
+            };
+
+            const list = useMemo(() => {
+                if (tab === 'wrong') return questions.filter(q => wrong.includes(q.id));
+                if (tab === 'notes') return [];
+                return questions.filter(q => q.type === tab);
+            }, [tab, questions, wrong]);
+
+            return (
+                <div className="max-w-2xl mx-auto p-4 pb-20">
+                    <header className="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                        <div>
+                            <h1 className="text-xl font-black text-slate-800">⚡ 电力电子 V6</h1>
+                            <p className="text-xs text-slate-400 font-bold">峄城田楼加油站备考版</p>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-xs font-bold text-slate-500">错题: <span className="text-red-500 text-lg">{wrong.length}</span></div>
+                            <button onClick={()=>{if(confirm('清空记录？')){localStorage.clear();location.reload()}}} className="text-[10px] text-slate-300 underline">重置</button>
+                        </div>
+                    </header>
+
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar mb-6">
+                        {['notes','mcq','tf','fill','calc','wrong'].map(t => (
+                            <button key={t} onClick={()=>setTab(t)} 
+                                className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border-2 ${tab===t?'bg-slate-800 border-slate-800 text-white shadow-lg':'bg-white border-slate-100 text-slate-500'}`}>
+                                {t==='notes'?'速记':t==='mcq'?'选择':t==='tf'?'判断':t==='fill'?'填空':t==='calc'?'计算':'错题本'}
+                            </button>
+                        ))}
+                    </div>
+
+                    {tab === 'notes' && (
+                        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-3xl text-white shadow-lg mb-6">
+                            <h2 className="text-2xl font-black mb-2">备考重点</h2>
+                            <ul className="text-sm opacity-90 list-disc pl-4 space-y-1">
+                                <li>三相桥全控：Ud = 2.34 U2 cosα</li>
+                                <li>Buck降压：Uo = D * E</li>
+                                <li>晶闸管额定：通态平均电流</li>
+                                <li>IGBT：电压驱动，高频大功率</li>
+                            </ul>
+                        </div>
+                    )}
+
+                    <div className="space-y-4">
+                        {list.length > 0 ? list.map((q, i) => (
+                            <div key={q.id} className={`bg-white p-5 rounded-2xl border-2 transition-all ${results[q.id]==='correct'?'border-green-100':results[q.id]==='wrong'?'border-red-100':'border-slate-50 hover:border-blue-100'}`}>
+                                <div className="flex gap-3">
+                                    <span className="text-xs font-black bg-slate-100 w-6 h-6 flex items-center justify-center rounded-full text-slate-400 shrink-0">{i+1}</span>
+                                    <div className="w-full">
+                                        <p className="font-bold text-slate-800 text-sm mb-3">{q.q}</p>
+                                        
+                                        {(q.type === 'mcq' || q.type === 'tf') && (
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {(q.o || ['正确','错误']).map(opt => (
+                                                    <button key={opt} disabled={!!results[q.id]} onClick={()=>check(q.id, opt, q.a)}
+                                                        className={`py-2 px-3 text-xs font-bold rounded-lg border-2 text-left ${results[q.id] && opt===q.a ? 'bg-green-500 border-green-500 text-white' : 'bg-slate-50 border-slate-50 text-slate-600'}`}>
+                                                        {opt}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {(q.type === 'fill' || q.type === 'calc') && (
+                                            <div className="flex gap-2">
+                                                <input className="bg-slate-50 border-2 border-slate-50 rounded-lg px-3 py-2 text-sm w-full font-bold text-slate-700" 
+                                                    placeholder="输入答案" disabled={!!results[q.id]}
+                                                    onChange={e=>setInputs({...inputs, [q.id]: e.target.value})} />
+                                                <button onClick={()=>check(q.id, inputs[q.id]||'', q.a)} disabled={!!results[q.id] || !inputs[q.id]}
+                                                    className="bg-slate-800 text-white px-4 rounded-lg text-xs font-bold disabled:opacity-50">核对</button>
+                                            </div>
+                                        )}
+
+                                        <div className="flex justify-between items-center mt-3">
+                                            <button onClick={()=>setShowAns({...showAns, [q.id]:!showAns[q.id]})} className="text-xs text-blue-500 font-bold">
+                                                {showAns[q.id] ? '收起' : '解析'}
+                                            </button>
+                                            {results[q.id] && (
+                                                <div className={`flex items-center gap-1 text-xs font-black ${results[q.id]==='correct'?'text-green-500':'text-red-500'}`}>
+                                                    {results[q.id]==='correct'?<IconCheck/>:<IconX/>}
+                                                    {results[q.id]==='correct'?'正确':'错误'}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {showAns[q.id] && (
+                                            <div className="mt-3 p-3 bg-slate-50 rounded-xl text-xs">
+                                                <p className="font-bold text-slate-900 mb-1">答案：<span className="text-blue-600">{q.a}</span></p>
+                                                <p className="text-slate-500">{q.r}</p>
+                                                {tab==='wrong' && <button onClick={()=>setWrong(w=>w.filter(id=>id!==q.id))} className="mt-2 text-red-400 flex items-center gap-1"><IconTrash/> 移出错题本</button>}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )) : (tab !== 'notes' && <div className="text-center py-10 text-slate-300 font-bold text-sm border-2 border-dashed border-slate-200 rounded-2xl">暂无内容</div>)}
+                    </div>
+                    
+                    <footer className="text-center mt-10 text-[10px] text-slate-300 font-bold uppercase tracking-widest">
+                        Power Electronics V6 · Local Edition
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
